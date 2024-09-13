@@ -1,21 +1,28 @@
-# Étape 1: Construire le binaire dans une image intermédiaire
-FROM golang:1.20 AS builder
+# Utiliser une image de base avec g++ et les bibliothèques de développement nécessaires
+FROM ubuntu:22.04
 
-# Créer un répertoire pour l'application
+# Installer les dépendances
+RUN apt-get update && apt-get install -y \
+    g++ \
+    libglfw3-dev \
+    libglew-dev \
+    libglu1-mesa-dev \
+    mesa-common-dev \
+    libxrandr-dev \
+    libxxf86vm-dev \
+    libxi-dev \
+    libxinerama-dev \
+    libx11-dev \
+    && apt-get clean
+
+# Définir le répertoire de travail
 WORKDIR /app
 
 # Copier le code source dans le conteneur
 COPY . .
 
-# Construire le binaire statique
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o myapp .
+# Commande pour compiler le projet
+RUN g++ -static $(find src/ -name '*.cpp') -o bin/progGL -Iinclude -Ilib -L./lib -lglfw -lGLEW -lGLU -lGL -lXrandr -lXxf86vm -lXi -lXinerama -lX11 -lrt -ldl
 
-# Étape 2: Créer une image finale avec le binaire autonome
-FROM scratch
-
-# Copier le binaire de l'image de construction
-COPY --from=builder /app/myapp /bin/myapp
-
-# Définir le point d'entrée du conteneur
-ENTRYPOINT ["/bin/myapp"]
-
+# Définir la commande par défaut pour exécuter le programme
+CMD ["./bin/progGL"]
