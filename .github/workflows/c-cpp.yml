@@ -1,4 +1,4 @@
-name: Build and Run with Docker
+name: Build and Package for Windows
 
 on:
   push:
@@ -16,11 +16,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Build Docker image
-      run: docker build -t my-app .
+    - name: Set up Docker Build
+      run: |
+        docker build -t myapp-windows .
 
-    - name: Upload exec
+    - name: Run Docker Container
+      run: |
+        docker run --name myapp-container myapp-windows
+
+    - name: Export Windows Binary
+      run: |
+        docker cp myapp-container:/app/myapp.exe ./myapp.exe
+
+    - name: Upload Windows Binary
       uses: actions/upload-artifact@v3
       with:
-        name: progGL
-        path: bin/progGL
+        name: myapp-windows-binary
+        path: ./myapp.exe
