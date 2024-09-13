@@ -1,35 +1,29 @@
-name: Build and Package for Windows
+# Étape 1: Préparer l'image de base
+FROM ubuntu:20.04 AS builder
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+# Installer les outils nécessaires pour la compilation croisée
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    mingw-w64 \
+    && rm -rf /var/lib/apt/lists/*
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+# Créer un répertoire pour l'application
+WORKDIR /app
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+# Copier le code source et les dépendances dans le conteneur
+COPY . .
 
-    - name: Set up Docker Build
-      run: |
-        docker build -t myapp-windows .
+# Configurer et compiler le projet pour Windows
+RUN mkdir -p build && cd build && \
+    cmake -DCMAKE_TOOLCHAIN_FILE=/usr/share/cmake-3.16/Modules/Platform/Windows.cmake .. && \
+    cmake --build . --config Release
 
-    - name: Run Docker Container
-      run: |
-        docker run --name myapp-container myapp-windows
+# Étape 2: Créer un répertoire final pour les artefacts
+FROM ubuntu:20.04 AS runtime
 
-    - name: Export Windows Binary
-      run: |
-        docker cp myapp-container:/app/myapp.exe ./myapp.exe
+# Copier le binaire de l'image de construction
+COPY --from=builder /app/build/Release/myapp.exe /app/myapp.exe
 
-    - name: Upload Windows Binary
-      uses: actions/upload-artifact@v3
-      with:
-        name: myapp-windows-binary
-        path: ./myapp.exe
+# Définir le point d'entrée du conteneur
+ENTRYPOINT ["/app/myapp.exe"]
