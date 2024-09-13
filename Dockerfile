@@ -1,28 +1,29 @@
-# Utiliser une image de base avec g++ et les bibliothèques de développement nécessaires
-FROM ubuntu:22.04
+# Étape 1: Préparer l'image de base
+FROM ubuntu:20.04 AS builder
 
-# Installer les dépendances
+# Installer les outils nécessaires pour la compilation croisée
 RUN apt-get update && apt-get install -y \
-    g++ \
-    libglfw3-dev \
-    libglew-dev \
-    libglu1-mesa-dev \
-    mesa-common-dev \
-    libxrandr-dev \
-    libxxf86vm-dev \
-    libxi-dev \
-    libxinerama-dev \
-    libx11-dev \
-    && apt-get clean
+    build-essential \
+    cmake \
+    mingw-w64 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Définir le répertoire de travail
+# Créer un répertoire pour l'application
 WORKDIR /app
 
-# Copier le code source dans le conteneur
+# Copier le code source et les dépendances dans le conteneur
 COPY . .
 
-# Commande pour compiler le projet
-RUN g++ -static $(find src/ -name '*.cpp') -o bin/progGL -Iinclude -Ilib -L./lib -lglfw -lGLEW -lGLU -lGL -lXrandr -lXxf86vm -lXi -lXinerama -lX11 -lrt -ldl
+# Configurer et compiler le projet pour Windows
+RUN mkdir -p build && cd build && \
+    cmake -DCMAKE_TOOLCHAIN_FILE=/usr/share/cmake-3.16/Modules/Platform/Windows.cmake .. && \
+    cmake --build . --config Release
 
-# Définir la commande par défaut pour exécuter le programme
-CMD ["./bin/progGL"]
+# Étape 2: Préparer l'image finale
+FROM mcr.microsoft.com/windows/nanoserver:1809 AS runtime
+
+# Copier le binaire de l'image de construction
+COPY --from=builder /app/build/Release/myapp.exe /app/myapp.exe
+
+# Définir le point d'entrée du conteneur
+ENTRYPOINT ["/app/myapp.exe"]
