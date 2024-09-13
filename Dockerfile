@@ -19,8 +19,8 @@ RUN mkdir -p build && cd build && \
     cmake -DCMAKE_TOOLCHAIN_FILE=/usr/share/cmake-3.16/Modules/Platform/Windows.cmake .. && \
     cmake --build . --config Release
 
-# Étape 2: Préparer l'image finale
-FROM mcr.microsoft.com/windows/nanoserver:1809 AS runtime
+# Étape 2: Créer un répertoire final pour les artefacts
+FROM ubuntu:20.04 AS runtime
 
 # Copier le binaire de l'image de construction
 COPY --from=builder /app/build/Release/myapp.exe /app/myapp.exe
