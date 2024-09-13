@@ -19,5 +19,8 @@ jobs:
     - name: Build Docker image
       run: docker build -t my-app .
 
-    - name: Run the application
-      run: docker run my-app
+    - name: Upload exec
+      uses: actions/upload-artifact@v3
+      with:
+        name: progGL
+        path: bin/progGL
